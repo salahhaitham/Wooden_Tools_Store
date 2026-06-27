@@ -1,0 +1,7 @@
+<odoo>
+
+    <menuitem id="base_menu_root" name="Wooden Store"/>
+    <menuitem id="wooden_store_menu" name="Wooden Tools Store" parent="base_menu_root"/>
+     <menuitem id="store_orders_menu" name="Store orders menu" parent="base_menu_root"/>
+
+</odoo>

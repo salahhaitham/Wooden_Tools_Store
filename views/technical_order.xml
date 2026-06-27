@@ -1,0 +1,104 @@
+<odoo>
+     <record id="technical_order_tree_view" model="ir.ui.view">
+         <field name="name">technical order</field>
+         <field name="model">technical.order</field>
+         <field name="arch" type="xml">
+              <list>
+
+                  <field name="name"/>
+ <field name="request_name"/>
+                   <field name="requested_by"/>
+                   <field name="custormer_id"/>
+
+        <field name="total"/>
+              </list>
+         </field>
+
+     </record>
+
+
+
+
+<record id="technical_order_form" model="ir.ui.view">
+    <field name="name">technical order form</field>
+    <field name="model">technical.order</field>
+    <field name="arch" type="xml">
+        <form >
+            <sheet>
+                   <header>
+        <field name="state"
+               widget="statusbar"
+               />
+  <button name="action_draft"
+        type="object"
+        string="Reset To Draft"
+        class="btn-secondary"
+        invisible="state != 'cancel'"/>
+
+          <button name="action_submit_for_approve"
+        type="object"
+        string="Submit For Approval"
+        class="btn-primary"
+        invisible="state != 'draft'"/>
+
+  <button name="action_approve"
+        type="object"
+        string="Approve"
+        class="btn-success"
+        invisible="state != 'to_be_approved'"/>
+   <button name="action_reject"
+        type="object"
+        string="Reject"
+        class="btn-primary"
+        invisible="state != 'to_be_approved'"/>
+     <button name="action_cancel"
+        type="object"
+        string="Cancel"
+        class="btn-danger"
+        invisible="state != 'draft'"/>
+    </header>
+
+
+               <div class="oe_title">
+    <label for="name"/>
+    <h1>
+        <field name="name"/>
+    </h1>
+</div>
+
+                <group>
+
+                   <field name="request_name"/>
+                   <field name="requested_by"/>
+                   <field name="custormer_id"/>
+               <field name="total"/>
+                </group>
+           <notebook>
+               <page string="Order Lines">
+                   <field name="technical_order_ids">
+                       <list editable="bottom">
+                   <field name="product_id"/>
+                    <field name="description"/>
+                            <field name="quantity"/>
+                            <field name="price"/>
+                            <field name="total_price"/>
+                       </list>
+                   </field>
+
+               </page>
+
+           </notebook>
+
+            </sheet>
+        </form>
+    </field>
+</record>
+
+    <record id="wooden_store_action" model="ir.actions.act_window">
+        <field name="name">orders </field>
+        <field name="res_model">technical.order</field>
+            <field name="view_mode">list,form</field>
+
+    </record>
+ <menuitem id="orders_menu_id" name="orders" parent="store_orders_menu" action="wooden_store_action"/>
+</odoo>
