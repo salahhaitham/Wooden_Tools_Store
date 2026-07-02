@@ -34,7 +34,18 @@ class TechnicalOrder(models.Model):
     ], string='Status', default='draft')
     technical_order_ids = fields.One2many('technical.order.line','technical_order_id')
     total = fields.Float(string="Total",compute='_compute_technical_order_ids')
+    sale_order_ids = fields.One2many(
+        'sale.order','technical_order_id'
+    )
+    sale_order_count = fields.Integer(
+        compute='_compute_purchase_order_count'
+    )
+    def action_view_orders(self):
+        print("View Orders")
 
+    def _compute_purchase_order_count(self):
+        for rec in self:
+            rec.sale_order_count = len(rec.sale_order_ids)
 
     @api.depends('technical_order_ids.total_price')
     def _compute_technical_order_ids(self):
@@ -61,15 +72,76 @@ class TechnicalOrder(models.Model):
     def action_approve(self):
         self.state = 'approve'
 
+        sale_manager_group = self.env.ref(
+            'sales_team.group_sale_manager'
+        )
+
+        users = self.env['res.users'].search([]).filtered(
+            lambda u: sale_manager_group in u.group_ids
+        )
+        print(users.ids)
+
+        for user in users:
+            print("User:", user.name)
+            print("User:", user.name)
+            print("Email:", user.partner_id.email)
+
+            if user.partner_id.email:
+                print("Entered IF")
+            if user.partner_id.email:
+                mail = self.env['mail.mail'].create({
+                    'subject': 'Technical Order Approved',
+                    'body_html': f"""
+                        <p>Hello {user.name},</p>
+                        <p>
+                            Technical Order
+                            <strong>{self.name}</strong>
+                            has been approved.
+                        </p>
+                    """,
+                    'email_to': user.partner_id.email,
+                })
+
+                print("Mail Record:", mail)
+                print("Before Send:", mail.state)
+
+                mail.send()
+                print(mail.failure_reason)
+
+                print("After Send:", mail.state)
+
+
+    def create_sale_order(self):
+        for line in self.technical_order_ids:
+         order =self.env['sale.order'].create({
+            'partner_id': self.custormer_id.id,
+            'order_line': [(0, 0, {
+                'product_id': line.product_id.id,
+                'product_uom_qty': line.quantity,
+                'price_unit': line.price,
+
+            })],
+            })
+         print(order)
+
+
+
+
     def action_reject(self):
-        pass
+         pass
 
 class TechnicalOrderLine(models.Model):
     _name = 'technical.order.line'
-
+    _order = 'id'
     technical_order_id = fields.Many2one('technical.order')
     product_id = fields.Many2one('product.product')
     description = fields.Char(string='Description')
+    sequence = fields.Integer(
+        string='Line No',
+        compute='_compute_sequence',
+    readonly=True,
+    store=False
+    )
     quantity = fields.Integer(string='Quantity',default=1)
     price=fields.Float(string='Price')
     total_price = fields.Float(string='Total',compute='_compute_total_price')
@@ -84,6 +156,12 @@ class TechnicalOrderLine(models.Model):
         if self.product_id:
             self.description = self.product_id.name
             self.price = self.product_id.lst_price
+
+    @api.depends('technical_order_id.technical_order_ids')
+    def _compute_sequence(self):
+        for order in self.mapped('technical_order_id'):
+            for index, line in enumerate(order.technical_order_ids, start=1):
+                line.sequence = index
 
 
 
