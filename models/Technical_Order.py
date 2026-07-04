@@ -1,5 +1,5 @@
 from odoo import  fields, models,api
-
+from odoo.exceptions import ValidationError
 
 
 class TechnicalOrder(models.Model):
@@ -41,7 +41,16 @@ class TechnicalOrder(models.Model):
         compute='_compute_purchase_order_count'
     )
     def action_view_orders(self):
-        print("View Orders")
+
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Sale Orders',
+            'res_model': 'sale.order',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', self.sale_order_ids.ids)],
+        }
+
+    
 
     def _compute_purchase_order_count(self):
         for rec in self:
@@ -112,17 +121,38 @@ class TechnicalOrder(models.Model):
 
 
     def create_sale_order(self):
+
+        order_lines = []
+
         for line in self.technical_order_ids:
-         order =self.env['sale.order'].create({
-            'partner_id': self.custormer_id.id,
-            'order_line': [(0, 0, {
+            confirmed_qty = sum(
+                self.sale_order_ids.filtered(
+                    lambda so: so.state == 'sale'
+                ).mapped(
+                    lambda so: sum(
+                        so.order_line.filtered(
+                            lambda l: l.product_id == line.product_id
+                        ).mapped('product_uom_qty')
+                    )
+                )
+            )
+            remaining_qty = line.quantity - confirmed_qty
+
+            order_lines.append((0, 0, {
                 'product_id': line.product_id.id,
-                'product_uom_qty': line.quantity,
+                'product_uom_qty': remaining_qty,
                 'price_unit': line.price,
 
-            })],
-            })
-         print(order)
+            }))
+        if remaining_qty > 0 :
+         sale_order = self.env['sale.order'].create({
+            'partner_id': self.custormer_id.id,
+            'technical_order_id': self.id,
+            'order_line': order_lines,
+        })
+        else :
+            raise ValidationError("remaining_qty less than 1")
+
 
 
 
